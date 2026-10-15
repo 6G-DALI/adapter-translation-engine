@@ -1,7 +1,7 @@
 # 6G-DALI Translation Engine — Template
 
-The **Translation Engine** is a small web service deployed next to each testbed. The 6G-DALI Framework sends it experiment-control requests through one
-**common API**. The Translation Engine translates them into the testbed's own API
+The **Translation Engine** is a small web service deployed next to each testbed. The 6G-DALI Framework sends it experiment-control requests through 
+**common APIs**. The Translation Engine translates them into the testbed's own API
 and reports the experiment's state back to the Framework.
 
 This repository is the **template** each testbed starts from. The common API is
