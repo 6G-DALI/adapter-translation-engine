@@ -13,7 +13,7 @@ As shipped, the template **simulates a testbed**, so it runs on its own and you
 can explore the API docs before writing any code.
 
 > Full details, rules and examples are in the **Developer Guide**
-> (`Translation_Engine_Developer_Guide.docx`).
+> (`Translation_Engine_Developer_Guide.pdf`).
 
 ---
 
