@@ -41,7 +41,7 @@ translation-engine-template/
 **Requirements:** Python 3.9+ and Git.
 
 ```bash
-git clone <REPOSITORY_URL> translation-engine-template
+git clone https://github.com/6G-DALI/adapter-translation-engine.git
 cd translation-engine-template
 
 python3 -m venv .venv
@@ -240,4 +240,3 @@ Do not invent new codes; put specifics in `details` instead.
 Python 3.9+, plus the packages in `requirements.txt`: FastAPI, Uvicorn, httpx
 and Pydantic v2. Add any libraries your testbed integration needs to
 `requirements.txt`.
-# adapter-translation-engine
