@@ -42,7 +42,7 @@ translation-engine-template/
 
 ```bash
 git clone https://github.com/6G-DALI/adapter-translation-engine.git
-cd translation-engine-template
+cd adapter-translation-engine/translation-engine-template
 
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
