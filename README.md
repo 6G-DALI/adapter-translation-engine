@@ -27,7 +27,6 @@ translation-engine-template/
 ├── utils.py                  # Helpers: success(), error(), APIException, send_status_update()  (do not edit)
 ├── testbed.py                # YOUR testbed logic: start, stop, metadata, experiment state  (edit)
 ├── requirements.txt          # Python dependencies (you may add your own)
-├── README.md
 ├── static/
 │   └── swagger-ui/           # Swagger UI files, bundled so /docs works offline  (do not edit)
 └── extras/
