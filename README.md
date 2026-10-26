@@ -102,8 +102,6 @@ is reported later through status updates sent to `status_update_url`.
     "title": "Energy Saving Small Area Two Layers Sectorized AppOFF",
     "description": "RAN dataset generated through the EURECOM Digital Twin testbed",
     "keywords": ["Energy", "RAN", "Digital_Twin"],
-    "frequency": "5",
-    "unit": "seconds",
     "testbed_context": { "network_domain": "RAN" }
   },
   "status_update_url": "http://localhost:8003/6gdali/experiment/status",
@@ -114,7 +112,7 @@ is reported later through status updates sent to `status_update_url`.
 | Field | Validated by the engine | Used for |
 |-------|-------------------------|----------|
 | `exp_id` | Required, not empty, **first character a lowercase letter `a`-`z`** | Identifies the experiment (also in the stop URL) |
-| `metadata` | **Fixed keys**, all required, no extra keys: `title`, `description`, `keywords` (≥ 1), `frequency` (positive number **as a string**), `unit`, `testbed_context.network_domain` | Metadata generation only. **Not** used to run the experiment |
+| `metadata` | **Fixed keys**, all required, no extra keys: `title`, `description`, `keywords` (≥ 1), `testbed_context.network_domain` | Metadata generation only. **Not** used to run the experiment |
 | `status_update_url` | Valid http(s) URL | Where experiment states are sent |
 | `config` | Must match the testbed's `Configuration` model | Running the experiment |
 
@@ -132,9 +130,11 @@ can fix the whole body in one retry.
 | `models.py` | `EXAMPLE_CONFIG` | A valid example `config`, shown in Swagger |
 | `testbed.py` | `TESTBED_NAME` | Your testbed's name (Swagger title) |
 | `testbed.py` | `_experiments` | Simulation only. Replace with your own experiment tracking. |
-| `testbed.py` | `start_experiment(exp_id, config, status_update_url)` | Translate `config`, start the experiment, store `status_update_url` |
+| `testbed.py` | `start_experiment(exp_id, config, status_update_url)` | Translate `config`, start the experiment, store `status_update_url`. Keep the `_start_watchdog(exp_id)` call. |
 | `testbed.py` | `process_metadata(exp_id, metadata)` | Hand `metadata` to your metadata generation solution |
-| `testbed.py` | `stop_experiment(exp_id)` | Stop the experiment on your testbed |
+| `testbed.py` | `stop_experiment(exp_id)` | Stop endpoint: return 404 for unknown experiments. It cancels the watchdog, then calls `stop_procedure()` |
+| `testbed.py` | `stop_procedure(exp_id, reason)` | Your stopping procedure, used by the stop endpoint and by the watchdog |
+| deployment | `MAX_EXPERIMENT_DURATION` env var | Maximum run time before the watchdog stops an experiment (default 3600 s) |
 
 Every place to change is marked `TODO` in the code.
 
@@ -145,6 +145,52 @@ being identical on every testbed.
 
 **The engine stores no experiment state.** Tracking experiments, including where
 to send their status updates, is the testbed owner's responsibility.
+
+---
+
+## Validation: a safety net against LLM hallucination
+
+Requests come from an LLM agent, which can hallucinate: a wrong configuration,
+an out-of-range parameter, a misspelled key. Sent to the testbed, such a value
+could break testbed-side components. The Translation Engine therefore validates
+every request with Pydantic **before** anything reaches the testbed, and rejects
+invalid ones with an error that lists the fields to fix.
+
+The common fields (`exp_id`, `metadata`, `status_update_url`) are validated by
+the template. **Testbed owners must do the same for `config`**:
+
+- declare every field, with types and **ranges**, e.g. `Field(..., ge=1, le=50)`;
+- use enums for fixed choices (scenario names, units...);
+- keep `extra="forbid"`, so unknown or misspelled keys are rejected;
+- check testbed-dependent rules (does this scenario exist?) in
+  `start_experiment()` and raise `INVALID_CONFIGURATION`.
+
+---
+
+## Running and stopping experiments
+
+The Framework (intent translation solution) **starts and stops** every
+experiment. There is no duration in the config, and the testbed does not stop
+experiments by itself. The testbed owner implements the stopping procedure in
+`stop_procedure()` in `testbed.py`.
+
+Because the LLM agent might never send the stop request (it can forget,
+hallucinate or fail), a **watchdog** is armed for every experiment:
+
+| Situation | What happens |
+|-----------|--------------|
+| Stop endpoint called | The watchdog is cancelled, then `stop_procedure()` runs |
+| No stop request within `MAX_EXPERIMENT_DURATION` | The watchdog calls `stop_procedure()` and logs a warning |
+
+`MAX_EXPERIMENT_DURATION` (seconds, default `3600`) is an **environment
+variable**, set at deployment to the longest run your testbed should allow. The
+engine refuses to start if the value is not a positive number.
+
+```bash
+MAX_EXPERIMENT_DURATION=7200 python translation_engine.py      # shell
+docker run -e MAX_EXPERIMENT_DURATION=7200 ...                  # Docker
+Environment=MAX_EXPERIMENT_DURATION=7200                        # systemd unit
+```
 
 ---
 
@@ -207,7 +253,7 @@ Do not invent new codes; put specifics in `details` instead.
   "data": null,
   "error": {
     "type": "validation_error",
-    "details": [{"loc": ["body", "metadata", "unit"], "msg": "Field required"}]
+    "details": [{"loc": ["body", "metadata", "title"], "msg": "Field required"}]
   },
   "timestamp": "2026-10-14T09:26:41.769000+00:00"
 }

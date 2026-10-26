@@ -32,7 +32,6 @@ from pydantic import (
 #     class Configuration(BaseModel):
 #         model_config = ConfigDict(extra="forbid")
 #         scenario_name: str = Field(..., description="Scenario to deploy.")
-#         duration: int = Field(..., gt=0, description="Duration of the run.")
 #         frequency: Frequency
 #
 # Keep extra="forbid": a misspelled or unexpected key is rejected instead of
@@ -81,17 +80,6 @@ ExperimentId = Annotated[str, AfterValidator(check_experiment_id)]
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
-def check_frequency(value: str) -> str:
-    """frequency is a positive number written as a string, e.g. "5"."""
-    try:
-        number = float(value)
-    except ValueError:
-        number = 0
-    if number <= 0:
-        raise ValueError('frequency must be a positive number written as a string, e.g. "5".')
-    return value
-
-
 class TestbedContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -116,12 +104,6 @@ class Metadata(BaseModel):
     keywords: List[NonEmptyStr] = Field(
         ..., min_length=1, description="At least one keyword.",
         examples=[["Energy", "RAN", "Digital_Twin"]],
-    )
-    frequency: Annotated[str, AfterValidator(check_frequency)] = Field(
-        ..., description='Sampling frequency as a string, e.g. "5".', examples=["5"],
-    )
-    unit: NonEmptyStr = Field(
-        ..., description="Unit of frequency.", examples=["seconds"],
     )
     testbed_context: TestbedContext
 
